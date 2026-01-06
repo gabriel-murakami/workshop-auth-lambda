@@ -1,0 +1,54 @@
+name: Deploy Auth Function
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    env:
+      IMAGE_NAME: ghcr.io/${{ github.repository }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate image tag
+        run: |
+          TAG="auth-$(date +'%Y%m%d-%H%M%S')-${GITHUB_SHA::7}"
+          echo "TAG=$TAG" >> $GITHUB_ENV
+
+      - name: Docker login
+        run: |
+          echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io \
+            -u "${{ secrets.GHCR_USERNAME }}" \
+            --password-stdin
+
+      - name: Build image
+        run: |
+          IMAGE_URI=$IMAGE_NAME:${TAG}
+          docker build -t $IMAGE_URI .
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+
+      - name: Push image
+        run: |
+          docker push $IMAGE_URI
+
+      - name: Render Knative Service
+        run: |
+          sed "s|IMAGE_PLACEHOLDER|${IMAGE_URI}|g" \
+            k8s/auth-function.yaml > k8s/auth-function.rendered.yaml
+
+      - name: Apply Knative Service
+        run: |
+          kubectl apply -f k8s/auth-function.rendered.yaml
+
+      - name: Wait for readiness
+        run: |
+          kubectl wait \
+            --for=condition=Ready \
+            ksvc/auth-function \
+            -n workshop \
+            --timeout=120s

@@ -1,0 +1,33 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: auth-function
+  namespace: workshop
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "0"
+        serving.knative.dev/retain-revisions: "2"
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - image: IMAGE_PLACEHOLDER
+          ports:
+            - containerPort: 8080
+          env:
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: auth-jwt-secret
+                  key: jwt-secret
+
+            - name: APP_BASE_URL
+              value: http://web-service.workshop.svc.cluster.local:3000
+
+            - name: INTERNAL_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: internal-auth-secret
+                  key: token
