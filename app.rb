@@ -75,7 +75,7 @@ server.mount_proc "/auth" do |req, res|
     end
 
     unless client_active?(cpf)
-      json_response(res, 403, error: "Cliente inexistente ou inativo")
+      json_response(res, 403, error: "Usuário inexistente ou inativo")
       next
     end
 
