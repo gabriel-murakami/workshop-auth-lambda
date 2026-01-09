@@ -3,7 +3,6 @@
 ## Visão Geral
 
 Este repositório contém o **serviço de autenticação serverless** da arquitetura.
-
 Ele é executado como um **Knative Service** dentro do cluster Kubernetes e atua como **gateway de autenticação**, sendo totalmente desacoplado da aplicação principal.
 
 ---
