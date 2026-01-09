@@ -21,11 +21,16 @@ def json_response(res, status, payload)
   res.body = payload.to_json
 end
 
-def client_active?(cpf)
+def client_active?(cpf, password)
   uri = URI("#{APP_BASE_URL}/internal/users/#{cpf}")
 
-  request = Net::HTTP::Get.new(uri)
+  request = Net::HTTP::Post.new(uri)
   request["X-Internal-Token"] = INTERNAL_AUTH_TOKEN
+  request["Content-Type"] = "application/json"
+
+  request.body = {
+    password: password
+  }.to_json
 
   response = Net::HTTP.start(
     uri.hostname,
@@ -68,14 +73,15 @@ server.mount_proc "/auth" do |req, res|
 
     body = JSON.parse(req.body || "{}")
     cpf  = body["cpf"]
+    password = body["password"]
 
     unless cpf && CPF.valid?(cpf)
       json_response(res, 400, error: "CPF inválido")
       next
     end
 
-    unless client_active?(cpf)
-      json_response(res, 403, error: "Usuário inexistente ou inativo")
+    unless client_active?(cpf, password)
+      json_response(res, 403, error: "Usuário inexistente ou autenticação inválida")
       next
     end
 
